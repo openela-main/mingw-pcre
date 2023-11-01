@@ -1,0 +1,28 @@
+From 108377b836fc29a84f5286287629d96549b1c777 Mon Sep 17 00:00:00 2001
+From: ph10 <ph10@2f5784b3-3f2a-0410-8824-cb99058d5e15>
+Date: Sun, 29 Nov 2015 17:38:25 +0000
+Subject: [PATCH 3/5] Give error for regexec with pmatch=NULL and REG_STARTEND
+ set.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+git-svn-id: svn://vcs.exim.org/pcre/code/trunk@1614 2f5784b3-3f2a-0410-8824-cb99058d5e15
+
+Petr Písař: Ported to 8.38.
+
+diff --git a/pcreposix.c b/pcreposix.c
+index f024423..dcc13ef 100644
+--- a/pcreposix.c
++++ b/pcreposix.c
+@@ -364,6 +364,7 @@ start location rather than being passed as a PCRE "starting offset". */
+ 
+ if ((eflags & REG_STARTEND) != 0)
+   {
++  if (pmatch == NULL) return REG_INVARG; 
+   so = pmatch[0].rm_so;
+   eo = pmatch[0].rm_eo;
+   }
+-- 
+2.4.3
+

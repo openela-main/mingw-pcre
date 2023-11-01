@@ -1,0 +1,29 @@
+From e347b40d5bb12f7ef1e632aa649571a107be7d8a Mon Sep 17 00:00:00 2001
+From: ph10 <ph10@2f5784b3-3f2a-0410-8824-cb99058d5e15>
+Date: Sun, 29 Nov 2015 17:46:23 +0000
+Subject: [PATCH 4/5] Allow for up to 32-bit numbers in the ordin() function in
+ pcregrep.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+git-svn-id: svn://vcs.exim.org/pcre/code/trunk@1615 2f5784b3-3f2a-0410-8824-cb99058d5e15
+
+Petr Písař: Ported to 8.38.
+
+diff --git a/pcregrep.c b/pcregrep.c
+index 64986b0..cd53c64 100644
+--- a/pcregrep.c
++++ b/pcregrep.c
+@@ -2437,7 +2437,7 @@ return options;
+ static char *
+ ordin(int n)
+ {
+-static char buffer[8];
++static char buffer[14];
+ char *p = buffer;
+ sprintf(p, "%d", n);
+ while (*p != 0) p++;
+-- 
+2.4.3
+

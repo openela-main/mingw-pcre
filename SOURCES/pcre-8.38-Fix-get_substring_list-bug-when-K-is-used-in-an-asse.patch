@@ -1,0 +1,67 @@
+From 4f47274a2eb10131d88145ad7fd0eed4027a0c51 Mon Sep 17 00:00:00 2001
+From: ph10 <ph10@2f5784b3-3f2a-0410-8824-cb99058d5e15>
+Date: Tue, 8 Dec 2015 11:06:40 +0000
+Subject: [PATCH] Fix get_substring_list() bug when \K is used in an assertion.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+git-svn-id: svn://vcs.exim.org/pcre/code/trunk@1620 2f5784b3-3f2a-0410-8824-cb99058d5e15
+
+Petr Písař: ported to 8.38.
+
+diff --git a/pcre_get.c b/pcre_get.c
+index 41eda9c..cdd2abc 100644
+--- a/pcre_get.c
++++ b/pcre_get.c
+@@ -461,7 +461,10 @@ pcre_uchar **stringlist;
+ pcre_uchar *p;
+ 
+ for (i = 0; i < double_count; i += 2)
+-  size += sizeof(pcre_uchar *) + IN_UCHARS(ovector[i+1] - ovector[i] + 1);
++  {
++  size += sizeof(pcre_uchar *) + IN_UCHARS(1);
++  if (ovector[i+1] > ovector[i]) size += IN_UCHARS(ovector[i+1] - ovector[i]);
++  } 
+ 
+ stringlist = (pcre_uchar **)(PUBL(malloc))(size);
+ if (stringlist == NULL) return PCRE_ERROR_NOMEMORY;
+@@ -477,7 +480,7 @@ p = (pcre_uchar *)(stringlist + stringcount + 1);
+ 
+ for (i = 0; i < double_count; i += 2)
+   {
+-  int len = ovector[i+1] - ovector[i];
++  int len = (ovector[i+1] > ovector[i])? (ovector[i+1] - ovector[i]) : 0;
+   memcpy(p, subject + ovector[i], IN_UCHARS(len));
+   *stringlist++ = p;
+   p += len;
+diff --git a/testdata/testinput2 b/testdata/testinput2
+index 00ffe32..967a241 100644
+--- a/testdata/testinput2
++++ b/testdata/testinput2
+@@ -4232,4 +4232,7 @@ backtracking verbs. --/
+ /(?<A>)(?J:(?<B>)(?<B>))(?<C>)/
+     \O\CC
+ 
++/(?=a\K)/ 
++    ring bpattingbobnd $ 1,oern cou \rb\L
++
+ /-- End of testinput2 --/
+diff --git a/testdata/testoutput2 b/testdata/testoutput2
+index ffb4466..5fb28d5 100644
+--- a/testdata/testoutput2
++++ b/testdata/testoutput2
+@@ -14644,4 +14644,10 @@ No match
+ Matched, but too many substrings
+ copy substring C failed -7
+ 
++/(?=a\K)/ 
++    ring bpattingbobnd $ 1,oern cou \rb\L
++Start of matched string is beyond its end - displaying from end to start.
++ 0: a
++ 0L 
++
+ /-- End of testinput2 --/
+-- 
+2.5.0
+

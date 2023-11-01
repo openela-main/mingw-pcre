@@ -1,0 +1,99 @@
+From db1fb68feddc9afe6f8822d099fa9ff25e3ea8e7 Mon Sep 17 00:00:00 2001
+From: ph10 <ph10@2f5784b3-3f2a-0410-8824-cb99058d5e15>
+Date: Sat, 5 Dec 2015 16:30:14 +0000
+Subject: [PATCH] Fix copy named substring bug.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+git-svn-id: svn://vcs.exim.org/pcre/code/trunk@1618 2f5784b3-3f2a-0410-8824-cb99058d5e15
+
+Petr Písař: Ported to 8.38.
+diff --git a/pcre_get.c b/pcre_get.c
+index 8094b34..41eda9c 100644
+--- a/pcre_get.c
++++ b/pcre_get.c
+@@ -250,6 +250,7 @@ Arguments:
+   code         the compiled regex
+   stringname   the name of the capturing substring
+   ovector      the vector of matched substrings
++  stringcount  number of captured substrings 
+ 
+ Returns:       the number of the first that is set,
+                or the number of the last one if none are set,
+@@ -258,13 +259,16 @@ Returns:       the number of the first that is set,
+ 
+ #if defined COMPILE_PCRE8
+ static int
+-get_first_set(const pcre *code, const char *stringname, int *ovector)
++get_first_set(const pcre *code, const char *stringname, int *ovector,
++  int stringcount)
+ #elif defined COMPILE_PCRE16
+ static int
+-get_first_set(const pcre16 *code, PCRE_SPTR16 stringname, int *ovector)
++get_first_set(const pcre16 *code, PCRE_SPTR16 stringname, int *ovector,
++  int stringcount)
+ #elif defined COMPILE_PCRE32
+ static int
+-get_first_set(const pcre32 *code, PCRE_SPTR32 stringname, int *ovector)
++get_first_set(const pcre32 *code, PCRE_SPTR32 stringname, int *ovector,
++  int stringcount)
+ #endif
+ {
+ const REAL_PCRE *re = (const REAL_PCRE *)code;
+@@ -295,7 +299,7 @@ if (entrysize <= 0) return entrysize;
+ for (entry = (pcre_uchar *)first; entry <= (pcre_uchar *)last; entry += entrysize)
+   {
+   int n = GET2(entry, 0);
+-  if (ovector[n*2] >= 0) return n;
++  if (n < stringcount && ovector[n*2] >= 0) return n;
+   }
+ return GET2(entry, 0);
+ }
+@@ -402,7 +406,7 @@ pcre32_copy_named_substring(const pcre32 *code, PCRE_SPTR32 subject,
+   PCRE_UCHAR32 *buffer, int size)
+ #endif
+ {
+-int n = get_first_set(code, stringname, ovector);
++int n = get_first_set(code, stringname, ovector, stringcount);
+ if (n <= 0) return n;
+ #if defined COMPILE_PCRE8
+ return pcre_copy_substring(subject, ovector, stringcount, n, buffer, size);
+@@ -619,7 +623,7 @@ pcre32_get_named_substring(const pcre32 *code, PCRE_SPTR32 subject,
+   PCRE_SPTR32 *stringptr)
+ #endif
+ {
+-int n = get_first_set(code, stringname, ovector);
++int n = get_first_set(code, stringname, ovector, stringcount);
+ if (n <= 0) return n;
+ #if defined COMPILE_PCRE8
+ return pcre_get_substring(subject, ovector, stringcount, n, stringptr);
+diff --git a/testdata/testinput2 b/testdata/testinput2
+index 3a1134f..00ffe32 100644
+--- a/testdata/testinput2
++++ b/testdata/testinput2
+@@ -4229,4 +4229,7 @@ backtracking verbs. --/
+ 
+ /()\Q\E*]/BCZ
+ 
++/(?<A>)(?J:(?<B>)(?<B>))(?<C>)/
++    \O\CC
++
+ /-- End of testinput2 --/
+diff --git a/testdata/testoutput2 b/testdata/testoutput2
+index 6c42897..ffb4466 100644
+--- a/testdata/testoutput2
++++ b/testdata/testoutput2
+@@ -14639,4 +14639,9 @@ No match
+         End
+ ------------------------------------------------------------------
+ 
++/(?<A>)(?J:(?<B>)(?<B>))(?<C>)/
++    \O\CC
++Matched, but too many substrings
++copy substring C failed -7
++
+ /-- End of testinput2 --/
+-- 
+2.4.3
+

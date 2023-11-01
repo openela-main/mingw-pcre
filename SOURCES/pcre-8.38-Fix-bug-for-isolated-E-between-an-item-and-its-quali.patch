@@ -1,0 +1,84 @@
+From bfc1dfa660c24dc7a75108d934290e50d7db2719 Mon Sep 17 00:00:00 2001
+From: ph10 <ph10@2f5784b3-3f2a-0410-8824-cb99058d5e15>
+Date: Fri, 27 Nov 2015 17:41:04 +0000
+Subject: [PATCH 2/5] Fix bug for isolated \E between an item and its qualifier
+ when auto callout is set.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+git-svn-id: svn://vcs.exim.org/pcre/code/trunk@1613 2f5784b3-3f2a-0410-8824-cb99058d5e15
+
+Petr Písař: Ported to 8.38.
+
+diff --git a/pcre_compile.c b/pcre_compile.c
+index 3670f1e..5786cd3 100644
+--- a/pcre_compile.c
++++ b/pcre_compile.c
+@@ -4645,9 +4645,10 @@ for (;; ptr++)
+     goto FAILED;
+     }
+ 
+-  /* If in \Q...\E, check for the end; if not, we have a literal */
++  /* If in \Q...\E, check for the end; if not, we have a literal. Otherwise an
++  isolated \E is ignored. */
+ 
+-  if (inescq && c != CHAR_NULL)
++  if (c != CHAR_NULL)
+     {
+     if (c == CHAR_BACKSLASH && ptr[1] == CHAR_E)
+       {
+@@ -4655,7 +4656,7 @@ for (;; ptr++)
+       ptr++;
+       continue;
+       }
+-    else
++    else if (inescq)
+       {
+       if (previous_callout != NULL)
+         {
+@@ -4670,7 +4671,6 @@ for (;; ptr++)
+         }
+       goto NORMAL_CHAR;
+       }
+-    /* Control does not reach here. */
+     }
+ 
+   /* In extended mode, skip white space and comments. We need a loop in order
+diff --git a/testdata/testinput2 b/testdata/testinput2
+index 92e3359..e8ca4fe 100644
+--- a/testdata/testinput2
++++ b/testdata/testinput2
+@@ -4225,4 +4225,6 @@ backtracking verbs. --/
+ 
+ /L(?#(|++<!(2)?/BCOZ
+ 
++/(A*)\E+/CBZ
++
+ /-- End of testinput2 --/
+diff --git a/testdata/testoutput2 b/testdata/testoutput2
+index 2cf7a90..09756b8 100644
+--- a/testdata/testoutput2
++++ b/testdata/testoutput2
+@@ -14610,4 +14610,18 @@ No match
+         End
+ ------------------------------------------------------------------
+ 
++/(A*)\E+/CBZ
++------------------------------------------------------------------
++        Bra
++        Callout 255 0 7
++        SCBra 1
++        Callout 255 1 2
++        A*
++        Callout 255 3 0
++        KetRmax
++        Callout 255 7 0
++        Ket
++        End
++------------------------------------------------------------------
++
+ /-- End of testinput2 --/
+-- 
+2.4.3
+
