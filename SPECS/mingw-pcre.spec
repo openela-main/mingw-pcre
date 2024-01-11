@@ -2,10 +2,10 @@
 
 Name:		mingw-pcre
 Version:	8.43
-Release:	7%{?dist}
+Release:	8%{?dist}
 Summary:	MinGW Windows pcre library
 
-License:	BSD
+License:	BSD-3-Clause
 URL:		http://www.pcre.org/
 Source0:	ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-%{version}.tar.bz2
 
@@ -190,6 +190,10 @@ find $RPM_BUILD_ROOT -name "*.la" -delete
 
 
 %changelog
+* Mon Aug 7 2023 Konstantin Kostiuk <kkostiuk@redhat.com> - 8.43-8
+- Update license to SPDX format
+- Resolves: RHEL-1058
+
 * Mon Aug 09 2021 Mohan Boddu <mboddu@redhat.com> - 8.43-7
 - Rebuilt for IMA sigs, glibc 2.34, aarch64 flags
   Related: rhbz#1991688
